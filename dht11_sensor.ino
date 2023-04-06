@@ -16,20 +16,19 @@ aREST rest = aREST(); // instance aREST
 WiFiServer server(LISTEN_PORT); // create instance of server
 
 // define variable to exposed to api
-float temperature;
-float humidity;
+int temperature;
+int humidity;
 
 // wifi parameters
-const char* ssid  = "user";
-const char* password = "password";
+const char* ssid  = "Ridho";
+const char* password = "katakunci2023";
+
+// define host dweet io
+const char* host = "dweet.io";
 
 void setup() {
   Serial.begin(9600); // start serial
   dht.begin(); // init sensor dht
-
-  // init variable and expose them to REST api
-  rest.variable("temperature",&temperature);
-  rest.variable("humidity",&humidity);
 
   // connect to wifi
   WiFi.begin(ssid, password);
@@ -39,26 +38,28 @@ void setup() {
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println(WiFi.localIP());
-
-  // start server
-  server.begin();
-  Serial.println("Server Started");
 }
 
 void loop() {
+  // reading connection dweet io
+  Serial.print("Connecting to ");
+  Serial.println(host);
+
   // reading temperature dan humidity
   temperature = dht.readTemperature();
   humidity = dht.readHumidity();
 
-  // hadnle rest calls
-  WiFiClient client = server.available();
-  if (!client) {
+  // use wifi client class to create tcp connections
+  WiFiClient client;
+  const int httPort = 80;
+  if (!client.connect(host, httPort)) {
+    Serial.println("connection failed");
     return;
   }
 
-  while(!client.available()) {
-    delay(1);    
-  }
-
-  rest.handle(client);
+  // this will send teh request to the server dweet io
+  client.print(String("GET /dweet/for/go.dht11?temperature=") + String(temperature) + "&humidity=" + String(humidity) + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection close\r\n\r\n");
+  delay(10);
+  Serial.println("closing connection");
+  delay(10000); 
 }
